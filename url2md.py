@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Convert web articles to markdown format with metadata extraction.
 ###############################################################################
-# Name:      url2markdown.py
+# Name:      url2md.py
 # Purpose:   Create a markdown file from a URL.
 #            The output is in Markdown format.
 # Version:   1.0
@@ -21,7 +21,7 @@ from newspaper import Article, Config
 from newspaper.network import get_html
 from newspaper.article import ArticleException
 import click
-
+import nltk
 
 def clean_filename(title):
     """Clean the title to create a valid filename."""
@@ -34,15 +34,14 @@ def clean_filename(title):
 def get_random_user_agent():
     """Return a random modern browser user agent."""
     user_agents = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
     ]
     return random.choice(user_agents)
 
@@ -64,11 +63,23 @@ def get_browser_headers():
         "Sec-Fetch-Mode": "navigate",
         "Sec-Fetch-Site": "none",
         "Sec-Fetch-User": "?1",
-        "Cache-Control": "max-age=0",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+        "DNT": "1",
+        "Referer": random.choice([
+            "https://www.google.com/",
+            "https://www.bing.com/",
+            "https://duckduckgo.com/",
+            "https://www.linkedin.com/",
+            "https://www.facebook.com/",
+        ]),
+        "sec-ch-ua": '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Windows"',
     }
 
 
-def extract_article(url, max_retries=3, timeout=10):
+def extract_article(url, max_retries=5, timeout=30):
     """Extract article content from URL using newspaper3k with browser-like behavior."""
     # Validate URL format
     if not url.startswith(("http://", "https://")):
@@ -81,16 +92,27 @@ def extract_article(url, max_retries=3, timeout=10):
     config.request_timeout = timeout
     config.cookie_jar = CookieJar()
     config.headers = get_browser_headers()
+    config.keep_article_html = True
+    config.http_success_only = False
+    config.memoize_articles = False
+    config.browser_user_agent = get_random_user_agent()
+    config.verify_ssl = False  # Sometimes needed for certain sites
 
     for attempt in range(max_retries):
         try:
             print(f"Attempt {attempt + 1} of {max_retries}...")
 
-            # Add random delay between attempts (1-3 seconds)
+            # Add random delay between attempts (3-7 seconds)
             if attempt > 0:
-                delay = random.uniform(1, 3)
+                delay = random.uniform(3, 7)
                 print(f"Waiting {delay:.1f} seconds before retrying...")
                 time.sleep(delay)
+
+            # Simulate human-like behavior
+            if random.random() < 0.3:  # 30% chance to add extra delay
+                extra_delay = random.uniform(2, 4)
+                print(f"Adding extra delay of {extra_delay:.1f} seconds...")
+                time.sleep(extra_delay)
 
             article = Article(url, config=config)
 
@@ -129,8 +151,9 @@ def extract_article(url, max_retries=3, timeout=10):
         except RequestException as e:
             print(f"Network error on attempt {attempt + 1}: {str(e)}")
             if attempt < max_retries - 1:
-                print("Waiting 2 seconds before retrying...")
-                time.sleep(2)
+                delay = random.uniform(4, 8)
+                print(f"Waiting {delay:.1f} seconds before retrying...")
+                time.sleep(delay)
             continue
         except ArticleException as e:
             print(f"Error extracting article: {str(e)}")
@@ -138,8 +161,16 @@ def extract_article(url, max_retries=3, timeout=10):
                 "Tip: Some websites may block automated requests. Try a different URL or website."
             )
             if attempt < max_retries - 1:
-                print("Waiting 2 seconds before retrying...")
-                time.sleep(2)
+                delay = random.uniform(4, 8)
+                print(f"Waiting {delay:.1f} seconds before retrying...")
+                time.sleep(delay)
+            continue
+        except Exception as e:
+            print(f"Unexpected error on attempt {attempt + 1}: {str(e)}")
+            if attempt < max_retries - 1:
+                delay = random.uniform(4, 8)
+                print(f"Waiting {delay:.1f} seconds before retrying...")
+                time.sleep(delay)
             continue
 
     print(f"Failed to extract article after {max_retries} attempts.")
@@ -231,14 +262,14 @@ def extract_urls_from_markdown(markdown_file):
 @click.option(
     "--timeout",
     "-t",
-    default=10,
-    help="Timeout in seconds for the request (default: 10)",
+    default=30,
+    help="Timeout in seconds for the request (default: 30)",
 )
 @click.option(
     "--max-retries",
     "-r",
-    default=3,
-    help="Maximum number of retry attempts (default: 3)",
+    default=5,
+    help="Maximum number of retry attempts (default: 5)",
 )
 @click.version_option(version="1.0.0")
 def main(url, markdown_file, output_dir, timeout, max_retries):
@@ -246,6 +277,8 @@ def main(url, markdown_file, output_dir, timeout, max_retries):
 
     URL: The URL of the article to convert (not required if --markdown-file is used)
     """
+    nltk.download('punkt_tab')
+
     if not url and not markdown_file:
         print("Error: Either URL or --markdown-file must be provided")
         sys.exit(1)

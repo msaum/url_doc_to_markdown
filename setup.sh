@@ -3,34 +3,39 @@
 # Exit on error
 set -e
 
-# Check if pyenv is installed
-if ! command -v pyenv &> /dev/null; then
-    echo "Installing pyenv..."
-    curl https://pyenv.run | bash
-    echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
-    echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
-    echo 'eval "$(pyenv init -)"' >> ~/.bashrc
+# Check if conda is installed
+if ! command -v conda &> /dev/null; then
+    echo "Installing Anaconda..."
+    # Download Anaconda installer
+    wget https://repo.anaconda.com/archive/Anaconda3-2024.02-1-Linux-x86_64.sh -O anaconda.sh
+    # Install Anaconda silently
+    bash anaconda.sh -b -p $HOME/anaconda3
+    # Add conda to PATH
+    echo 'export PATH="$HOME/anaconda3/bin:$PATH"' >> ~/.bashrc
+    # Initialize conda
+    $HOME/anaconda3/bin/conda init bash
     source ~/.bashrc
+    # Clean up installer
+    rm anaconda.sh
+else
+    echo "Anaconda is already installed"
 fi
 
-# Install Python 3.11.0 if not already installed
-if ! pyenv versions | grep -q "3.11.0"; then
-    echo "Installing Python 3.11.0..."
-    pyenv install 3.11.0
+# Create or activate url2md environment
+if ! conda env list | grep -q "url2md"; then
+    echo "Creating url2md environment..."
+    conda create -n url2md python=3.11 -y
+else
+    echo "url2md environment already exists"
 fi
 
-# Set local Python version
-pyenv local 3.11.0
-
-# Install pipenv if not already installed
-if ! command -v pipenv &> /dev/null; then
-    echo "Installing pipenv..."
-    pip install pipenv
-fi
+# Activate the environment
+echo "Activating url2md environment..."
+conda activate url2md
 
 # Install dependencies
 echo "Installing dependencies..."
-pipenv install
+pip install "lxml[html_clean]" newspaper3k click
 
 echo "Setup complete! You can now run the script using:"
-echo "pipenv run python url2markdown.py [URL]" 
+echo "conda activate url2md && python url2markdown.py [URL]" 
