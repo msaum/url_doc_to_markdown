@@ -35,7 +35,7 @@ conda activate url2md
 
 # Install dependencies
 echo "Installing dependencies..."
-pip install "lxml[html_clean]" newspaper3k click
+pip install -r requirements.txt
 
 echo "Setup complete! You can now run the script using:"
-echo "conda activate url2md && python url2markdown.py [URL]" 
+echo "conda activate url2md && python url2md.py [URL]" 
