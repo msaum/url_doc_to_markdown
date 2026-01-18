@@ -2,6 +2,10 @@
 
 This Python script extracts article content from URLs and converts them to well-formatted markdown files. It can process either a single URL or multiple URLs from a markdown file.
 
+## NOTE
+
+This repository has been superceded by: https://github.com/msaum/mdtools
+
 ## Features
 
 - Extracts article title, content, authors, and publication date
