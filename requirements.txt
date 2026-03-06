@@ -1,5 +1,5 @@
 trafilatura>=1.6.3
-markdown==3.5.2
+markdown==3.8.1
 beautifulsoup4==4.12.2
 click>=8.1.7
 nltk>=3.8.1 
